@@ -45,7 +45,11 @@ export default function Home() {
 
   async function exportar(ficha: Ficha) {
     try {
-      await exportarFicha(ficha);
+      const onde = await exportarFicha(ficha);
+
+      if (onde) {
+        Alert.alert("Exportada", `Salvo: ${onde}`);
+      }
     } catch {
       Alert.alert("Erro", `Não foi possível exportar a ficha de ${ficha.nome}.`);
     }
@@ -61,10 +65,20 @@ export default function Home() {
 
       setFichas(await carregarFichas());
       Alert.alert("Importada", `A ficha de ${ficha.nome} foi importada!`);
-    } catch {
+    } catch (erro: any) {
+      console.error("Erro ao importar ficha:", erro);
+
+      const motivos: Record<string, string> = {
+        ARQUIVO_VAZIO: "O arquivo está vazio. Exporte a ficha de novo e tente outra vez.",
+        NAO_E_JSON: "O arquivo não é um JSON válido.",
+        VARIAS_FICHAS: "Esse arquivo tem várias fichas. Importe um arquivo de uma ficha só.",
+        FORMATO_INVALIDO:
+          "O JSON não tem os campos de uma ficha (nome, sistema, nivel, classe, raca).",
+      };
+
       Alert.alert(
-        "Erro",
-        "Arquivo inválido. Escolha um .json de ficha exportado pelo app.",
+        "Erro ao importar",
+        motivos[erro?.message] ?? `Não foi possível ler o arquivo.\n\n${erro?.message ?? erro}`,
       );
     }
   }
