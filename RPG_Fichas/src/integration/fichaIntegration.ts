@@ -67,7 +67,10 @@ export async function exportarFicha(ficha: Ficha): Promise<string | null> {
     }
 
     // createFile recebe o nome SEM extensão duplicada e o mime type
-    const arquivo = pasta.createFile(nome.replace(/\.json$/, ""), "application/json");
+    const arquivo = pasta.createFile(
+      nome.replace(/\.json$/, ""),
+      "application/json",
+    );
     arquivo.write(conteudo);
 
     // confere se o arquivo realmente foi criado e tem conteúdo
@@ -162,13 +165,8 @@ export async function importarFicha(): Promise<Ficha | null> {
 
   const atuais = await carregarFichas();
 
-  const idJaExiste =
-    typeof dados.id !== "string" ||
-    !dados.id ||
-    atuais.some((f) => f.id === dados.id);
-
   const nova: Ficha = {
-    id: idJaExiste ? gerarId() : dados.id,
+    id: gerarId(),
     nome: dados.nome,
     sistema: dados.sistema,
     nivel: Number(dados.nivel),

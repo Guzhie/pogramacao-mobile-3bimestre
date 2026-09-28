@@ -43,7 +43,10 @@ export async function exportarFicha(ficha: Ficha): Promise<string | null> {
       const handle = await picker({
         suggestedName: nome,
         types: [
-          { description: "Ficha de RPG", accept: { "application/json": [".json"] } },
+          {
+            description: "Ficha de RPG",
+            accept: { "application/json": [".json"] },
+          },
         ],
       });
       const writable = await handle.createWritable();
@@ -132,18 +135,14 @@ export async function importarFicha(): Promise<Ficha | null> {
 
   const atuais = await carregarFichas();
 
-  const idJaExiste =
-    typeof dados.id !== "string" || !dados.id || atuais.some((f) => f.id === dados.id);
-
   const nova: Ficha = {
-    id: idJaExiste ? gerarId() : dados.id,
+    id: gerarId(),
     nome: dados.nome,
     sistema: dados.sistema,
     nivel: Number(dados.nivel),
     classe: dados.classe,
     raca: dados.raca,
   };
-
   await salvarFichas([...atuais, nova]);
 
   return nova;

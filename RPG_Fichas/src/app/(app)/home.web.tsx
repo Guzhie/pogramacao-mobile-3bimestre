@@ -1,12 +1,6 @@
 import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/card/Card";
@@ -39,7 +33,7 @@ export default function HomeWeb() {
   useFocusEffect(
     useCallback(() => {
       setFichas(carregarFichasWeb());
-    }, [])
+    }, []),
   );
 
   function sair() {
@@ -62,16 +56,14 @@ export default function HomeWeb() {
 
   function excluirFicha(ficha: Ficha) {
     const confirmar = window.confirm(
-      `Deseja excluir a ficha de ${ficha.nome}?`
+      `Deseja excluir a ficha de ${ficha.nome}?`,
     );
 
     if (!confirmar) {
       return;
     }
 
-    const novasFichas = fichas.filter(
-      (item) => item.id !== ficha.id
-    );
+    const novasFichas = fichas.filter((item) => item.id !== ficha.id);
 
     salvarFichasWeb(novasFichas);
     setFichas(novasFichas);
@@ -126,7 +118,7 @@ export default function HomeWeb() {
           ...fichas,
           {
             ...ficha,
-            id: ficha.id || crypto.randomUUID(),
+            id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
           },
         ];
 
@@ -146,23 +138,16 @@ export default function HomeWeb() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Caderno de Fichas</Text>
 
-      <Text style={styles.subtitle}>
-        Minhas fichas de personagem
-      </Text>
+      <Text style={styles.subtitle}>Minhas fichas de personagem</Text>
 
       <View style={styles.topButtons}>
         <Button title="Nova Ficha" onPress={criarFicha} />
-        <Button
-          title="Importar ficha (.json)"
-          onPress={importarFicha}
-        />
+        <Button title="Importar ficha (.json)" onPress={importarFicha} />
         <Button title="Sair" onPress={sair} />
       </View>
 
       {fichas.length === 0 && (
-        <Text style={styles.vazio}>
-          Nenhuma ficha cadastrada.
-        </Text>
+        <Text style={styles.vazio}>Nenhuma ficha cadastrada.</Text>
       )}
 
       {fichas.map((ficha) => (
@@ -173,28 +158,18 @@ export default function HomeWeb() {
         >
           <Text style={styles.nome}>{ficha.nome}</Text>
 
-          <Text style={styles.sistema}>
-            {ficha.sistema}
-          </Text>
+          <Text style={styles.sistema}>{ficha.sistema}</Text>
 
-          <Text style={styles.info}>
-            Nível {ficha.nivel}
-          </Text>
+          <Text style={styles.info}>Nível {ficha.nivel}</Text>
 
           <Text style={styles.info}>
             {ficha.raca} • {ficha.classe}
           </Text>
 
           <View style={styles.acoes}>
-            <Button
-              title="Exportar"
-              onPress={() => exportarFicha(ficha)}
-            />
+            <Button title="Exportar" onPress={() => exportarFicha(ficha)} />
 
-            <Button
-              title="Excluir"
-              onPress={() => excluirFicha(ficha)}
-            />
+            <Button title="Excluir" onPress={() => excluirFicha(ficha)} />
           </View>
         </Card>
       ))}
