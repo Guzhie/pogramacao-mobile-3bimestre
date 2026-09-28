@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -6,50 +6,111 @@ import {
   Text,
   TextInput,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/button/Button";
 import { colors } from "@/constants/colors";
+import {
+  carregarFichas,
+  salvarFichas,
+} from "@/integration/fichaIntegration.web";
 import { Ficha } from "@/@types/ficha";
 
 export default function FichaWeb() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
   const [nome, setNome] = useState("");
   const [sistema, setSistema] = useState("");
   const [nivel, setNivel] = useState("");
   const [raca, setRaca] = useState("");
   const [classe, setClasse] = useState("");
 
-  function salvarFicha() {
-    if (!nome || !sistema || !nivel || !raca || !classe) {
+  const modoEdicao = !!id;
+
+  useEffect(() => {
+    async function carregarFicha() {
+      if (!id) {
+        return;
+      }
+
+      const fichas = await carregarFichas();
+      const ficha = fichas.find((item) => item.id === id);
+
+      if (!ficha) {
+        Alert.alert("Erro", "Ficha não encontrada.");
+        router.back();
+        return;
+      }
+
+      setNome(ficha.nome);
+      setSistema(ficha.sistema);
+      setNivel(String(ficha.nivel));
+      setRaca(ficha.raca);
+      setClasse(ficha.classe);
+    }
+
+    carregarFicha();
+  }, [id]);
+
+  async function salvarFicha() {
+    if (!nome.trim() || !sistema.trim() || !nivel.trim() || !raca.trim() || !classe.trim()) {
       Alert.alert("Atenção", "Preencha todos os campos.");
       return;
     }
 
-    const dados = localStorage.getItem("fichas");
+    const nivelNumerico = Number(nivel);
 
-    let fichas: Ficha[] = [];
+    if (Number.isNaN(nivelNumerico)) {
+      Alert.alert("Atenção", "O nível precisa ser um número.");
+      return;
+    }
 
-    if (dados) {
-      try {
-        fichas = JSON.parse(dados);
-      } catch {
-        fichas = [];
-      }
+    const fichas = await carregarFichas();
+
+    if (modoEdicao) {
+      const fichasAtualizadas = fichas.map((ficha) => {
+        if (ficha.id !== id) {
+          return ficha;
+        }
+
+        return {
+          ...ficha,
+          nome: nome.trim(),
+          sistema: sistema.trim(),
+          nivel: nivelNumerico,
+          raca: raca.trim(),
+          classe: classe.trim(),
+        };
+      });
+
+      await salvarFichas(fichasAtualizadas);
+
+      Alert.alert(
+        "Ficha atualizada",
+        `A ficha de ${nome} foi atualizada com sucesso!`,
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]
+      );
+
+      return;
     }
 
     const novaFicha: Ficha = {
-      id: crypto.randomUUID(),
-      nome,
-      sistema,
-      nivel: Number(nivel),
-      raca,
-      classe,
+      id: `${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`,
+      nome: nome.trim(),
+      sistema: sistema.trim(),
+      nivel: nivelNumerico,
+      raca: raca.trim(),
+      classe: classe.trim(),
     };
 
-    localStorage.setItem(
-      "fichas",
-      JSON.stringify([...fichas, novaFicha])
-    );
+    await salvarFichas([...fichas, novaFicha]);
 
     Alert.alert(
       "Ficha criada",
@@ -65,7 +126,9 @@ export default function FichaWeb() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Nova Ficha</Text>
+      <Text style={styles.title}>
+        {modoEdicao ? "Editar Ficha" : "Nova Ficha"}
+      </Text>
 
       <Text style={styles.label}>Nome do personagem</Text>
 
@@ -119,8 +182,13 @@ export default function FichaWeb() {
       />
 
       <Button
-        title="Salvar Ficha"
+        title={modoEdicao ? "Salvar alterações" : "Salvar Ficha"}
         onPress={salvarFicha}
+      />
+
+      <Button
+        title="Cancelar"
+        onPress={() => router.back()}
       />
     </ScrollView>
   );
