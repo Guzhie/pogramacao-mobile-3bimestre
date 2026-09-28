@@ -10,6 +10,7 @@ import { Button } from "@/components/button/Button";
 import { Ficha } from "@/@types/ficha";
 import {
   carregarFichas,
+  excluirFicha,
   exportarFicha,
   importarFicha,
 } from "@/integration/fichaIntegration";
@@ -43,6 +44,31 @@ export default function Home() {
     router.push("/ficha");
   }
 
+  function confirmarExclusao(ficha: Ficha) {
+    Alert.alert(
+      "Excluir ficha",
+      `Tem certeza que deseja excluir a ficha de ${ficha.nome}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await excluirFicha(ficha.id);
+              setFichas(await carregarFichas());
+            } catch {
+              Alert.alert("Erro", "Não foi possível excluir a ficha.");
+            }
+          },
+        },
+      ],
+    );
+  }
+
   async function exportar(ficha: Ficha) {
     try {
       const onde = await exportarFicha(ficha);
@@ -51,7 +77,10 @@ export default function Home() {
         Alert.alert("Exportada", `Salvo: ${onde}`);
       }
     } catch {
-      Alert.alert("Erro", `Não foi possível exportar a ficha de ${ficha.nome}.`);
+      Alert.alert(
+        "Erro",
+        `Não foi possível exportar a ficha de ${ficha.nome}.`,
+      );
     }
   }
 
@@ -60,7 +89,7 @@ export default function Home() {
       const ficha = await importarFicha();
 
       if (ficha === null) {
-        return; // cancelou
+        return;
       }
 
       setFichas(await carregarFichas());
@@ -69,16 +98,19 @@ export default function Home() {
       console.error("Erro ao importar ficha:", erro);
 
       const motivos: Record<string, string> = {
-        ARQUIVO_VAZIO: "O arquivo está vazio. Exporte a ficha de novo e tente outra vez.",
+        ARQUIVO_VAZIO:
+          "O arquivo está vazio. Exporte a ficha de novo e tente outra vez.",
         NAO_E_JSON: "O arquivo não é um JSON válido.",
-        VARIAS_FICHAS: "Esse arquivo tem várias fichas. Importe um arquivo de uma ficha só.",
+        VARIAS_FICHAS:
+          "Esse arquivo tem várias fichas. Importe um arquivo de uma ficha só.",
         FORMATO_INVALIDO:
           "O JSON não tem os campos de uma ficha (nome, sistema, nivel, classe, raca).",
       };
 
       Alert.alert(
         "Erro ao importar",
-        motivos[erro?.message] ?? `Não foi possível ler o arquivo.\n\n${erro?.message ?? erro}`,
+        motivos[erro?.message] ??
+          `Não foi possível ler o arquivo.\n\n${erro?.message ?? erro}`,
       );
     }
   }
@@ -120,6 +152,13 @@ export default function Home() {
                   title="Exportar (.json)"
                   onPress={() => exportar(ficha)}
                 />
+
+                <View style={styles.excluir}>
+                  <Button
+                    title="Excluir ficha"
+                    onPress={() => confirmarExclusao(ficha)}
+                  />
+                </View>
               </View>
             </Card>
           ))}
@@ -195,6 +234,10 @@ const styles = StyleSheet.create({
 
   exportar: {
     marginTop: 14,
+  },
+
+  excluir: {
+    marginTop: 10,
   },
 
   botoes: {

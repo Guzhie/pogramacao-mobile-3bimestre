@@ -140,8 +140,6 @@ function lerFicha(conteudo: string): any {
 
 // importa UMA ficha. Retorna a ficha importada, ou null se o usuário cancelou
 export async function importarFicha(): Promise<Ficha | null> {
-  // "*/*" porque no Android alguns gerenciadores de arquivo não marcam .json
-  // como application/json; a validação é feita abaixo
   const resultado = await DocumentPicker.getDocumentAsync({
     type: "*/*",
     copyToCacheDirectory: true,
@@ -151,14 +149,23 @@ export async function importarFicha(): Promise<Ficha | null> {
     return null;
   }
 
-  const conteudo = await new File(resultado.assets[0].uri).text();
+  const uri = resultado.assets[0].uri;
+
+  const response = await fetch(uri);
+
+  if (!response.ok) {
+    throw new Error("NAO_FOI_POSSIVEL_LER");
+  }
+
+  const conteudo = await response.text();
   const dados = lerFicha(conteudo);
 
   const atuais = await carregarFichas();
 
-  // se já existe uma ficha com o mesmo id, gera um id novo pra não sobrescrever
   const idJaExiste =
-    typeof dados.id !== "string" || !dados.id || atuais.some((f) => f.id === dados.id);
+    typeof dados.id !== "string" ||
+    !dados.id ||
+    atuais.some((f) => f.id === dados.id);
 
   const nova: Ficha = {
     id: idJaExiste ? gerarId() : dados.id,
@@ -172,4 +179,12 @@ export async function importarFicha(): Promise<Ficha | null> {
   await salvarFichas([...atuais, nova]);
 
   return nova;
+}
+
+export async function excluirFicha(id: string) {
+  const fichas = await carregarFichas();
+
+  const novasFichas = fichas.filter((ficha) => ficha.id !== id);
+
+  await salvarFichas(novasFichas);
 }
