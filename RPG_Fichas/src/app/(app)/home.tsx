@@ -1,31 +1,35 @@
-import { router } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/card/Card";
 import { colors } from "@/constants/colors";
 import { Button } from "@/components/button/Button";
 import { Ficha } from "@/@types/ficha";
-
-const fichas: Ficha[] = [
-  {
-    id: "1",
-    nome: "Farnese",
-    sistema: "D&D 5e",
-    nivel: 5,
-    classe: "Ladino",
-    raca: "Tiefling",
-  },
-  {
-    id: "2",
-    nome: "Bartolomeu",
-    sistema: "Ordem Paranormal",
-    nivel: 5,
-    classe: "Combatente",
-    raca: "Humano",
-  },
-];
+import {
+  carregarFichas,
+  exportarFicha,
+  importarFicha,
+} from "@/integration/fichaIntegration";
 
 export default function Home() {
+  const { logout } = useAuth();
+  const [fichas, setFichas] = useState<Ficha[]>([]);
+
+  // recarrega toda vez que a tela volta a ficar em foco (ex.: depois de criar uma ficha)
+  useFocusEffect(
+    useCallback(() => {
+      carregarFichas().then(setFichas);
+    }, []),
+  );
+
+  function sair() {
+    logout();
+    router.replace("/");
+  }
+
   function abrirFicha(ficha: Ficha) {
     router.push({
       pathname: "/ficha",
@@ -39,14 +43,46 @@ export default function Home() {
     router.push("/ficha");
   }
 
+  async function exportar(ficha: Ficha) {
+    try {
+      await exportarFicha(ficha);
+    } catch {
+      Alert.alert("Erro", `Não foi possível exportar a ficha de ${ficha.nome}.`);
+    }
+  }
+
+  async function importar() {
+    try {
+      const ficha = await importarFicha();
+
+      if (ficha === null) {
+        return; // cancelou
+      }
+
+      setFichas(await carregarFichas());
+      Alert.alert("Importada", `A ficha de ${ficha.nome} foi importada!`);
+    } catch {
+      Alert.alert(
+        "Erro",
+        "Arquivo inválido. Escolha um .json de ficha exportado pelo app.",
+      );
+    }
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Minhas Fichas</Text>
 
         <Text style={styles.subtitle}>Suas fichas de personagem</Text>
 
+        <Button title="Sair" onPress={sair} />
+
         <View style={styles.list}>
+          {fichas.length === 0 && (
+            <Text style={styles.vazio}>Nenhuma ficha ainda.</Text>
+          )}
+
           {fichas.map((ficha) => (
             <Card
               key={ficha.id}
@@ -64,13 +100,23 @@ export default function Home() {
                   {ficha.raca} • {ficha.classe}
                 </Text>
               </View>
+
+              <View style={styles.exportar}>
+                <Button
+                  title="Exportar (.json)"
+                  onPress={() => exportar(ficha)}
+                />
+              </View>
             </Card>
           ))}
         </View>
 
-        <Button title="+ Nova Ficha" onPress={criarFicha} />
+        <View style={styles.botoes}>
+          <Button title="+ Nova Ficha" onPress={criarFicha} />
+          <Button title="Importar ficha (.json)" onPress={importar} />
+        </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -102,6 +148,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  vazio: {
+    color: colors.secondaryText,
+    fontSize: 14,
+  },
+
   ficha: {
     marginBottom: 12,
   },
@@ -126,5 +177,13 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     fontSize: 14,
     marginTop: 3,
+  },
+
+  exportar: {
+    marginTop: 14,
+  },
+
+  botoes: {
+    gap: 12,
   },
 });

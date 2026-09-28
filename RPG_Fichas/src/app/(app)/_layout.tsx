@@ -7,7 +7,7 @@ export default function AppLayout() {
         name="home"
         options={{
           title: "Minhas Fichas",
-          headerShown: true,
+          headerShown: false,
         }}
       />
 
@@ -15,7 +15,7 @@ export default function AppLayout() {
         name="ficha"
         options={{
           title: "Ficha",
-          headerShown: true,
+          headerShown: false,
         }}
       />
     </Stack>
